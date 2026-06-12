@@ -15,7 +15,7 @@ export default defineConfig({
         "icon-512.png",
       ],
       manifest: {
-        name: "E-Absen 52",
+        name: "e-Absensi 52",
         short_name: "Absensi Digital",
         description: "Aplikasi Absensi Mobile Guru/Staf",
         theme_color: "#4f46e5",
