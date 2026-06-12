@@ -110,7 +110,7 @@ export default function Login() {
           </h1>
 
           <p className="mt-2 text-sm font-semibold leading-relaxed text-white/80">
-            Absensi guru/karyawan berbasis GPS, device binding, dan target kerja
+            Absensi Guru/Staf berbasis GPS, device binding, dan target kerja
             harian.
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function Login() {
         <div className="mt-8 rounded-[2rem] border border-white/70 bg-white/95 p-6 shadow-2xl backdrop-blur-xl">
           <div className="mb-6">
             <div className="mb-4 inline-flex rounded-full bg-indigo-50 px-4 py-2 text-xs font-black text-indigo-700">
-              Login Guru / Karyawan
+              Login Guru / Staf
             </div>
 
             <h2 className="text-2xl font-black text-slate-900">
