@@ -12,7 +12,6 @@ import {
 import toast from "react-hot-toast";
 
 import AppHeader from "../components/AppHeader";
-import SkeletonCard from "../components/SkeletonCard";
 import { getRiwayatAbsen } from "../api/api";
 import { getGuru } from "../utils/storage";
 import { getBulanList } from "../utils/date";
@@ -163,104 +162,93 @@ export default function RiwayatAbsen() {
             Refresh Data
           </button>
         </div>
+        {data.length === 0 ? (
+          <div className="rounded-[2rem] bg-white p-8 text-center shadow-soft">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[2rem] bg-slate-100 text-slate-400">
+              <History size={38} />
+            </div>
 
-        {loading ? (
-          <>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </>
+            <h3 className="mt-5 text-lg font-black text-slate-900">
+              Belum Ada Riwayat
+            </h3>
+
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              Tidak ada data absensi pada bulan dan tahun yang dipilih.
+            </p>
+          </div>
         ) : (
-          <>
-            {data.length === 0 ? (
-              <div className="rounded-[2rem] bg-white p-8 text-center shadow-soft">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[2rem] bg-slate-100 text-slate-400">
-                  <History size={38} />
-                </div>
+          <div className="space-y-3">
+            {data.map((item) => {
+              const statusStyle = getStatusStyle(item.statusKerja);
 
-                <h3 className="mt-5 text-lg font-black text-slate-900">
-                  Belum Ada Riwayat
-                </h3>
+              return (
+                <div
+                  key={item.id}
+                  className="overflow-hidden rounded-[2rem] bg-white shadow-soft"
+                >
+                  <div className="border-b border-slate-100 p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                          <CalendarDays size={24} />
+                        </div>
 
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                  Tidak ada data absensi pada bulan dan tahun yang dipilih.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data.map((item) => {
-                  const statusStyle = getStatusStyle(item.statusKerja);
+                        <div>
+                          <h3 className="font-black text-slate-900">
+                            {item.hari || "-"}
+                          </h3>
 
-                  return (
-                    <div
-                      key={item.id}
-                      className="overflow-hidden rounded-[2rem] bg-white shadow-soft"
-                    >
-                      <div className="border-b border-slate-100 p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                              <CalendarDays size={24} />
-                            </div>
-
-                            <div>
-                              <h3 className="font-black text-slate-900">
-                                {item.hari || "-"}
-                              </h3>
-
-                              <p className="text-sm font-semibold text-slate-500">
-                                {item.tanggal || "-"}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col items-end gap-2">
-                            <span
-                              className={[
-                                "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black",
-                                statusStyle.badge,
-                              ].join(" ")}
-                            >
-                              {statusStyle.icon}
-                              {item.statusKerja || "Belum Pulang"}
-                            </span>
-
-                            <span className="rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-black text-indigo-700">
-                              {item.durasiKerja || "0 Jam 0 Menit"}
-                            </span>
-                          </div>
+                          <p className="text-sm font-semibold text-slate-500">
+                            {item.tanggal || "-"}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 p-5">
-                        <div className="rounded-2xl bg-indigo-50 p-4">
-                          <div className="flex items-center gap-2 text-indigo-600">
-                            <Clock3 size={18} />
-                            <p className="text-xs font-black">Jam Datang</p>
-                          </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span
+                          className={[
+                            "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black",
+                            statusStyle.badge,
+                          ].join(" ")}
+                        >
+                          {statusStyle.icon}
+                          {item.statusKerja || "Belum Pulang"}
+                        </span>
 
-                          <p className="mt-2 text-2xl font-black text-slate-900">
-                            {item.jamDatang || "-:-"}
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl bg-blue-50 p-4">
-                          <div className="flex items-center gap-2 text-blue-600">
-                            <Clock3 size={18} />
-                            <p className="text-xs font-black">Jam Pulang</p>
-                          </div>
-
-                          <p className="mt-2 text-2xl font-black text-slate-900">
-                            {item.jamPulang || "-:-"}
-                          </p>
-                        </div>
+                        <span className="rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-black text-indigo-700">
+                          {item.durasiKerja || "0 Jam 0 Menit"}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 p-5">
+                    <div className="rounded-2xl bg-indigo-50 p-4">
+                      <div className="flex items-center gap-2 text-indigo-600">
+                        <Clock3 size={18} />
+                        <p className="text-xs font-black">Jam Datang</p>
+                      </div>
+
+                      <p className="mt-2 text-2xl font-black text-slate-900">
+                        {item.jamDatang || "-:-"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-blue-50 p-4">
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <Clock3 size={18} />
+                        <p className="text-xs font-black">Jam Pulang</p>
+                      </div>
+
+                      <p className="mt-2 text-2xl font-black text-slate-900">
+                        {item.jamPulang || "-:-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

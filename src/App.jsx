@@ -18,6 +18,7 @@ import AdminLayout from "./layouts/AdminLayout";
 
 import AuthGuard from "./components/AuthGuard";
 import AdminGuard from "./components/AdminGuard";
+import SettingSekolah from "./pages/SettingSekolah";
 
 export default function App() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="rekap" element={<RekapAbsensi />} />
         <Route path="libur" element={<SettingLibur />} />
         <Route path="guru" element={<KelolaGuru />} />
+        <Route path="setting" element={<SettingSekolah />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

@@ -116,3 +116,15 @@ export function getMonitoringHarian() {
 export function getMobileRealtime(payload) {
   return request("getMobileRealtime", payload);
 }
+
+export function getSettingSekolah() {
+  return request("getSettingSekolah");
+}
+
+export function saveSettingSekolah(payload) {
+  return request("saveSettingSekolah", payload);
+}
+
+export function getStatusHariIni() {
+  return request("getStatusHariIni");
+}

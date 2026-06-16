@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
-  Building2,
+  CalendarDays,
   CheckCircle2,
   Clock3,
   LocateFixed,
@@ -25,12 +25,12 @@ import L from "leaflet";
 
 import AppHeader from "../components/AppHeader";
 import LoadingScreen from "../components/LoadingScreen";
-import SkeletonCard from "../components/SkeletonCard";
 import {
   absenDatang,
   absenPulang,
   getMobileRealtime,
   getSetting,
+  getStatusHariIni,
   getTodayAbsen,
 } from "../api/api";
 import { formatJarak, hitungJarakMeter } from "../utils/haversine";
@@ -134,7 +134,6 @@ function durasiToMenit(durasi) {
   if (!durasi) return 0;
 
   const str = String(durasi);
-
   const jamMatch = str.match(/(\d+)\s*Jam/i);
   const menitMatch = str.match(/(\d+)\s*Menit/i);
 
@@ -179,6 +178,9 @@ export default function MobileAbsen() {
   const [setting, setSetting] = useState(null);
   const [loadingSetting, setLoadingSetting] = useState(true);
 
+  const [statusHariIni, setStatusHariIni] = useState(null);
+  const [loadingStatusHariIni, setLoadingStatusHariIni] = useState(true);
+
   const [location, setLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
@@ -193,6 +195,23 @@ export default function MobileAbsen() {
   const [absenMode, setAbsenMode] = useState(null);
 
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  async function loadStatusHariIni(showToast = false) {
+    setLoadingStatusHariIni(true);
+
+    const result = await getStatusHariIni();
+
+    setLoadingStatusHariIni(false);
+
+    if (!result.success) {
+      if (showToast) {
+        toast.error(result.message || "Gagal mengambil status hari ini.");
+      }
+      return;
+    }
+
+    setStatusHariIni(result.data || null);
+  }
 
   async function loadMobileRealtime(showToast = false) {
     if (!guru?.idGuru) {
@@ -374,6 +393,7 @@ export default function MobileAbsen() {
 
   useEffect(() => {
     loadMobileRealtime(false);
+    loadStatusHariIni(false);
     getCurrentLocation(false);
   }, []);
 
@@ -382,10 +402,19 @@ export default function MobileAbsen() {
 
     const interval = setInterval(() => {
       loadMobileRealtime(false);
+      loadStatusHariIni(false);
     }, 10000);
 
     return () => clearInterval(interval);
   }, [autoRefresh, guru?.idGuru]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const school = useMemo(() => {
     if (!setting) return null;
@@ -414,28 +443,70 @@ export default function MobileAbsen() {
     return jarak <= school.radius;
   }, [jarak, school]);
 
+  // const maxGpsAccuracy = Number(setting?.maxGpsAccuracy || 30);
+
+  // const gpsAccuracyValid = useMemo(() => {
+  //   if (!location?.accuracy) return false;
+  //   return Number(location.accuracy) <= maxGpsAccuracy;
+  // }, [location, maxGpsAccuracy]);
+
   const schoolPosition = school ? [school.lat, school.lng] : null;
   const userPosition = location ? [location.lat, location.lng] : null;
 
+  const isHariKerjaAktifHariIni = Boolean(statusHariIni?.isHariKerja);
+
   function openAbsenModal(mode) {
+    if (!isHariKerjaAktifHariIni) {
+      toast.error(statusHariIni?.keterangan || "Hari ini bukan hari kerja.");
+      return;
+    }
+
+    if (mode === "datang" && !bolehAbsenDatang) {
+      toast.error(
+        `Absen datang mulai pukul ${formatJamSetting(
+          setting?.jamMulaiDatang,
+        )} WITA`,
+      );
+      return;
+    }
+
+    if (mode === "pulang" && !todayAbsen?.jamDatang) {
+      toast.error("Anda belum melakukan absen datang.");
+      return;
+    }
+
+    if (mode === "pulang" && !bolehAbsenPulang) {
+      toast.error(
+        `Absen pulang hanya bisa pukul ${formatJamSetting(
+          setting?.jamMulaiPulang,
+        )} - ${formatJamSetting(setting?.jamBatasPulang)} WITA`,
+      );
+      return;
+    }
+
     setAbsenMode(mode);
     setOpenMapModal(true);
     getCurrentLocation(false);
   }
 
   const bolehAbsenDatang = useMemo(() => {
+    if (!isHariKerjaAktifHariIni) return false;
     return isNowAfterStart(setting?.jamMulaiDatang);
-  }, [setting]);
+  }, [setting, isHariKerjaAktifHariIni]);
 
   const bolehAbsenPulang = useMemo(() => {
-    if (!setting) return false;
-
+    if (!setting || !isHariKerjaAktifHariIni) return false;
     return isNowInRange(setting.jamMulaiPulang, setting.jamBatasPulang);
-  }, [setting]);
+  }, [setting, isHariKerjaAktifHariIni]);
 
   async function handleAbsenDatang() {
     if (!guru) {
       toast.error("Data guru tidak ditemukan. Silakan login ulang.");
+      return;
+    }
+
+    if (!isHariKerjaAktifHariIni) {
+      toast.error(statusHariIni?.keterangan || "Hari ini bukan hari kerja.");
       return;
     }
 
@@ -449,6 +520,11 @@ export default function MobileAbsen() {
       return;
     }
 
+    // if (!gpsAccuracyValid) {
+    //   toast.error(`Akurasi GPS harus ≤ ${maxGpsAccuracy} meter.`);
+    //   return;
+    // }
+
     setLoadingDatang(true);
 
     const result = await absenDatang({
@@ -458,6 +534,7 @@ export default function MobileAbsen() {
       latDatang: location.lat,
       lngDatang: location.lng,
       jarakDatang: jarak,
+      accuracyDatang: location.accuracy,
       deviceId: getDeviceId(),
     });
 
@@ -472,11 +549,22 @@ export default function MobileAbsen() {
     toast.success(result.message || "Absen datang berhasil.");
     setOpenMapModal(false);
     await loadMobileRealtime(false);
+    await loadStatusHariIni(false);
   }
 
   async function handleAbsenPulang() {
     if (!guru) {
       toast.error("Data guru tidak ditemukan. Silakan login ulang.");
+      return;
+    }
+
+    if (!isHariKerjaAktifHariIni) {
+      toast.error(statusHariIni?.keterangan || "Hari ini bukan hari kerja.");
+      return;
+    }
+
+    if (!todayAbsen?.jamDatang) {
+      toast.error("Anda belum melakukan absen datang.");
       return;
     }
 
@@ -490,6 +578,11 @@ export default function MobileAbsen() {
       return;
     }
 
+    // if (!gpsAccuracyValid) {
+    //   toast.error(`Akurasi GPS harus ≤ ${maxGpsAccuracy} meter.`);
+    //   return;
+    // }
+
     setLoadingPulang(true);
 
     const result = await absenPulang({
@@ -499,6 +592,7 @@ export default function MobileAbsen() {
       latPulang: location.lat,
       lngPulang: location.lng,
       jarakPulang: jarak,
+      accuracyPulang: location.accuracy,
       deviceId: getDeviceId(),
     });
 
@@ -513,6 +607,7 @@ export default function MobileAbsen() {
     toast.success(result.message || "Absen pulang berhasil.");
     setOpenMapModal(false);
     await loadMobileRealtime(false);
+    await loadStatusHariIni(false);
   }
 
   const modalTitle =
@@ -522,14 +617,6 @@ export default function MobileAbsen() {
 
   const modalButtonText =
     absenMode === "datang" ? "Simpan Absen Datang" : "Simpan Absen Pulang";
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const TARGET_HARIAN = 8 * 60;
 
@@ -571,12 +658,17 @@ export default function MobileAbsen() {
     return "Belum Memenuhi Target";
   }, [todayAbsen, totalMenitKerjaRealtime]);
 
-  
+  // if (loadingSetting || loadingTodayAbsen) {
+  //   return <LoadingScreen text="Memuat data absensi..." />;
+  // }
+  const pageLoading = loadingSetting || loadingTodayAbsen;
+
   return (
     <div>
+      {pageLoading && <LoadingScreen text="Memuat data absensi..." />}
       <AppHeader subtitle="Absensi Digital" title="Guru / Staf" showLogout />
 
-      <div className="mb-5 flex items-center justify-end">
+      <div className="mb-5 flex items-center justify-end px-5">
         <span
           className={[
             "inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold",
@@ -588,7 +680,7 @@ export default function MobileAbsen() {
           <span
             className={[
               "h-2 w-2 rounded-full",
-              autoRefresh ? "bg-emerald-500 animate-pulse" : "bg-slate-400",
+              autoRefresh ? "animate-pulse bg-emerald-500" : "bg-slate-400",
             ].join(" ")}
           />
 
@@ -599,121 +691,126 @@ export default function MobileAbsen() {
       </div>
 
       <div className="-mt-5 space-y-4 px-5 pb-6">
-        {loadingSetting ? (
+        <div className="rounded-3xl border border-white/70 bg-white/95 p-5 shadow-soft backdrop-blur-xl">
+          <div className="flex items-start gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+              <img
+                src={logo}
+                alt="Logo Sekolah"
+                className="h-16 w-16 object-contain"
+              />
+            </div>
+
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                Lokasi Sekolah
+              </p>
+              <h2 className="mt-1 text-lg font-black text-slate-900">
+                {school?.name}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Radius valid: {school?.radius} meter
+              </p>
+            </div>
+          </div>
+          <span
+            className={[
+              "inline-flex shrink-0 rounded-full px-3 py-1 text-[12px] font-black mt-3",
+              statusHariIni?.isHariKerja
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-rose-50 text-rose-700",
+            ].join(" ")}
+          >
+            {statusHariIni?.status || "Hari Kerja"}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-3xl bg-white p-4 text-center shadow-soft">
+            <p className="text-xs text-slate-400">Jam Absen Datang</p>
+            <h3 className="mt-1 text-sm font-black text-slate-900">
+              {formatJamSetting(setting?.jamMulaiDatang)} WITA
+            </h3>
+          </div>
+
+          <div className="rounded-3xl bg-white p-4 text-center shadow-soft">
+            <p className="text-xs font-bold text-slate-400">Jam Absen Pulang</p>
+            <h3 className="mt-1 text-sm font-black text-slate-900">
+              {formatJamSetting(setting?.jamMulaiPulang)} -{" "}
+              {formatJamSetting(setting?.jamBatasPulang)} WITA
+            </h3>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-3xl bg-white p-4 shadow-soft">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+              <LogIn size={24} />
+            </div>
+
+            <p className="mt-4 text-xs font-bold text-slate-400">Jam Datang</p>
+
+            <h3 className="mt-1 text-2xl font-bold text-slate-900">
+              {todayAbsen?.jamDatang || "-:-"}
+            </h3>
+
+            <button
+              onClick={() => openAbsenModal("datang")}
+              disabled={
+                loadingTodayAbsen ||
+                Boolean(todayAbsen?.jamDatang) ||
+                !bolehAbsenDatang ||
+                !isHariKerjaAktifHariIni
+              }
+              className="mt-4 w-full rounded-2xl bg-indigo-600 px-3 py-3 text-xs font-black text-white shadow-premium disabled:bg-slate-300 disabled:shadow-none"
+            >
+              {todayAbsen?.jamDatang
+                ? "Sudah Datang"
+                : !isHariKerjaAktifHariIni
+                ? "Hari Libur"
+                : !bolehAbsenDatang
+                ? "Di Luar Jam"
+                : "Check In"}
+            </button>
+          </div>
+
+          <div className="rounded-3xl bg-white p-4 shadow-soft">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-red-600">
+              <LogOut size={24} />
+            </div>
+
+            <p className="mt-4 text-xs font-bold text-slate-400">Jam Pulang</p>
+
+            <h3 className="mt-1 text-2xl font-bold text-slate-900">
+              {todayAbsen?.jamPulang || "-:-"}
+            </h3>
+
+            <button
+              onClick={() => openAbsenModal("pulang")}
+              disabled={
+                loadingTodayAbsen ||
+                !todayAbsen?.jamDatang ||
+                Boolean(todayAbsen?.jamPulang) ||
+                !bolehAbsenPulang ||
+                !isHariKerjaAktifHariIni
+              }
+              className="mt-4 w-full rounded-2xl bg-blue-600 px-3 py-3 text-xs font-black text-white shadow-premium disabled:bg-slate-300 disabled:shadow-none"
+            >
+              {todayAbsen?.jamPulang
+                ? "Sudah Pulang"
+                : !isHariKerjaAktifHariIni
+                ? "Hari Libur"
+                : !todayAbsen?.jamDatang
+                ? "Belum Datang"
+                : !bolehAbsenPulang
+                ? "Di Luar Jam"
+                : "Check Out"}
+            </button>
+          </div>
+        </div>
+
+        {isHariKerjaAktifHariIni && (
           <>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </>
-        ) : (
-          <>
-            <div className="rounded-3xl border border-white/70 bg-white/95 p-5 shadow-soft backdrop-blur-xl">
-              <div className="flex items-start gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                  <img
-                    src={logo}
-                    alt="Logo Sekolah"
-                    className="w-16 h-16 object-contain"
-                  />
-                </div>
-
-                <div className="flex-1">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                    Lokasi Sekolah
-                  </p>
-                  <h2 className="mt-1 text-lg font-black text-slate-900">
-                    {school?.name}
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Radius valid: {school?.radius} meter
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-3xl bg-white p-4 shadow-soft text-center">
-                <p className="text-xs text-slate-400">Jam Absen Datang</p>
-                <h3 className="mt-1 text-sm font-black text-slate-900">
-                  {formatJamSetting(setting?.jamMulaiDatang)} WITA
-                </h3>
-              </div>
-
-              <div className="rounded-3xl bg-white p-4 shadow-soft text-center">
-                <p className="text-xs font-bold text-slate-400">
-                  Jam Absen Pulang
-                </p>
-                <h3 className="mt-1 text-sm font-black text-slate-900">
-                  {formatJamSetting(setting?.jamMulaiPulang)} -{" "}
-                  {formatJamSetting(setting?.jamBatasPulang)} WITA
-                </h3>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-3xl bg-white p-4 shadow-soft">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                  <LogIn size={24} />
-                </div>
-
-                <p className="mt-4 text-xs font-bold text-slate-400">
-                  Jam Datang
-                </p>
-
-                <h3 className="mt-1 text-2xl font-bold text-slate-900">
-                  {loadingTodayAbsen ? "..." : todayAbsen?.jamDatang || "-:-"}
-                </h3>
-
-                <button
-                  onClick={() => openAbsenModal("datang")}
-                  disabled={
-                    loadingTodayAbsen ||
-                    Boolean(todayAbsen?.jamDatang) ||
-                    !bolehAbsenDatang
-                  }
-                  className="mt-4 w-full rounded-2xl bg-indigo-600 px-3 py-3 text-xs font-black text-white shadow-premium disabled:bg-slate-300 disabled:shadow-none"
-                >
-                  {todayAbsen?.jamDatang
-                    ? "Sudah Datang"
-                    : !bolehAbsenDatang
-                      ? "Di Luar Jam"
-                      : "Check In"}
-                </button>
-              </div>
-
-              <div className="rounded-3xl bg-white p-4 shadow-soft">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-red-600">
-                  <LogOut size={24} />
-                </div>
-
-                <p className="mt-4 text-xs font-bold text-slate-400">
-                  Jam Pulang
-                </p>
-
-                <h3 className="mt-1 text-2xl font-bold text-slate-900">
-                  {loadingTodayAbsen ? "..." : todayAbsen?.jamPulang || "-:-"}
-                </h3>
-
-                <button
-                  onClick={() => openAbsenModal("pulang")}
-                  disabled={
-                    loadingTodayAbsen ||
-                    Boolean(todayAbsen?.jamPulang) ||
-                    !bolehAbsenPulang
-                  }
-                  className="mt-4 w-full rounded-2xl bg-blue-600 px-3 py-3 text-xs font-black text-white shadow-premium disabled:bg-slate-300 disabled:shadow-none"
-                >
-                  {todayAbsen?.jamPulang
-                    ? "Sudah Pulang"
-                    : !bolehAbsenPulang
-                      ? "Di Luar Jam"
-                      : !todayAbsen?.jamDatang
-                        ? "Check Out"
-                        : "Check Out"}
-                </button>
-              </div>
-            </div>
-
             <div className="rounded-3xl bg-white p-5 shadow-soft">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
@@ -733,11 +830,11 @@ export default function MobileAbsen() {
               <div
                 className={[
                   "mt-4 rounded-2xl px-4 py-3 text-sm font-black",
-                  todayAbsen?.statusKerja === "Memenuhi Target"
+                  statusKerjaRealtime === "Memenuhi Target"
                     ? "bg-emerald-50 text-emerald-700"
-                    : todayAbsen?.statusKerja
-                      ? "bg-rose-50 text-rose-700"
-                      : "bg-slate-50 text-slate-500",
+                    : todayAbsen?.jamDatang
+                    ? "bg-rose-50 text-rose-700"
+                    : "bg-slate-50 text-slate-500",
                 ].join(" ")}
               >
                 {statusKerjaRealtime}
@@ -848,6 +945,13 @@ export default function MobileAbsen() {
                     <p className="text-sm font-semibold text-slate-600">
                       Jarak: {jarak !== null ? formatJarak(jarak) : "-"}
                     </p>
+
+                    <p className="text-xs font-semibold text-slate-500">
+                      Akurasi GPS: ±{" "}
+                      {location?.accuracy
+                        ? `${Math.round(location.accuracy)} meter`
+                        : "-"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -941,23 +1045,29 @@ export default function MobileAbsen() {
                   absenMode === "datang" ? handleAbsenDatang : handleAbsenPulang
                 }
                 disabled={
+                  !isHariKerjaAktifHariIni ||
                   !dalamArea ||
                   !location ||
                   loadingDatang ||
                   loadingPulang ||
                   loadingLocation ||
                   (absenMode === "datang" && !bolehAbsenDatang) ||
-                  (absenMode === "pulang" && !bolehAbsenPulang)
+                  (absenMode === "pulang" &&
+                    (!todayAbsen?.jamDatang || !bolehAbsenPulang))
                 }
                 className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-4 text-sm font-black text-white shadow-premium disabled:bg-slate-300 disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none"
               >
                 {loadingDatang || loadingPulang
                   ? "Menyimpan..."
+                  : !isHariKerjaAktifHariIni
+                  ? "Hari Ini Libur"
                   : absenMode === "datang" && !bolehAbsenDatang
-                    ? "Di Luar Jam Absen Datang"
-                    : absenMode === "pulang" && !bolehAbsenPulang
-                      ? "Di Luar Jam Absen Pulang"
-                      : modalButtonText}
+                  ? "Di Luar Jam Absen Datang"
+                  : absenMode === "pulang" && !todayAbsen?.jamDatang
+                  ? "Belum Absen Datang"
+                  : absenMode === "pulang" && !bolehAbsenPulang
+                  ? "Di Luar Jam Absen Pulang"
+                  : modalButtonText}
               </button>
             </div>
           </div>

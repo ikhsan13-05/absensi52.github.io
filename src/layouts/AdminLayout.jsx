@@ -40,6 +40,11 @@ const menus = [
     path: "/admin/libur",
     icon: CalendarDays,
   },
+  {
+    label: "Setting",
+    path: "/admin/setting",
+    icon: Settings,
+  },
 ];
 
 export default function AdminLayout() {

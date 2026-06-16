@@ -14,6 +14,7 @@ import { getTodayAbsen } from "../api/api";
 import { formatTanggal, getHari } from "../utils/date";
 import { getGuru } from "../utils/storage";
 import logo from "../assets/logo52.png";
+import { getStatusHariIni } from "../api/api";
 
 export default function Dashboard() {
   const guru = getGuru();
@@ -22,13 +23,11 @@ export default function Dashboard() {
   const [todayAbsen, setTodayAbsen] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [statusHariIni, setStatusHariIni] = useState(null);
+  const [loadingStatusHariIni, setLoadingStatusHariIni] = useState(true);
+
   const hari = getHari(now);
   const tanggal = formatTanggal(now);
-
-  const isHariKerja = useMemo(() => {
-    const day = now.getDay();
-    return day >= 1 && day <= 5;
-  }, [now]);
 
   const jamRealtime = useMemo(() => {
     return new Intl.DateTimeFormat("id-ID", {
@@ -57,8 +56,23 @@ export default function Dashboard() {
     }
   }
 
+  async function loadStatusHariIni() {
+    setLoadingStatusHariIni(true);
+
+    const result = await getStatusHariIni();
+
+    setLoadingStatusHariIni(false);
+
+    if (!result.success) {
+      return;
+    }
+
+    setStatusHariIni(result.data || null);
+  }
+
   useEffect(() => {
     loadTodayAbsen();
+    loadStatusHariIni();
 
     const timer = setInterval(() => {
       setNow(new Date());
@@ -66,6 +80,16 @@ export default function Dashboard() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // const isHariKerja = Boolean(statusHariIni?.isHariKerja);
+
+  // const badgeHariClass = isHariKerja
+  //   ? "bg-emerald-50 text-emerald-700"
+  //   : "bg-rose-50 text-rose-700";
+
+  // const badgeHariText = loadingStatusHariIni
+  //   ? "Memeriksa..."
+  //   : statusHariIni?.status || "Hari Kerja";
 
   return (
     <div>
@@ -119,16 +143,18 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div
+          <span
             className={[
-              "mt-5 inline-flex rounded-full px-4 py-2 text-xs font-black",
-              isHariKerja
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-rose-100 text-rose-700",
+              "inline-flex shrink-0 rounded-full px-3 py-1 text-[11px] font-black mt-3",
+              statusHariIni?.isHariKerja
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-rose-50 text-rose-700",
             ].join(" ")}
           >
-            {isHariKerja ? "Hari Kerja" : "Hari Libur"}
-          </div>
+            {loadingStatusHariIni
+              ? "Memeriksa..."
+              : statusHariIni?.status || "Hari Kerja"}
+          </span>
         </div>
 
         <div className="rounded-[2rem] bg-white p-5 shadow-soft">
