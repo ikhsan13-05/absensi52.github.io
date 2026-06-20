@@ -81,16 +81,6 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // const isHariKerja = Boolean(statusHariIni?.isHariKerja);
-
-  // const badgeHariClass = isHariKerja
-  //   ? "bg-emerald-50 text-emerald-700"
-  //   : "bg-rose-50 text-rose-700";
-
-  // const badgeHariText = loadingStatusHariIni
-  //   ? "Memeriksa..."
-  //   : statusHariIni?.status || "Hari Kerja";
-
   return (
     <div>
       <AppHeader title="Dashboard" subtitle="Absensi Digital" showLogout />

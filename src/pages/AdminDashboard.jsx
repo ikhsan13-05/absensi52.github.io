@@ -52,14 +52,14 @@ export default function AdminDashboard() {
       <AdminPageHeader
         eyebrow="Admin Dashboard"
         title="Monitoring Kehadiran"
-        description="Rekap kehadiran guru/karyawan hari ini."
+        description="Rekap Kehadiran Guru dan Staf hari ini."
         loading={loading}
         onRefresh={() => loadDashboard(true)}
       />
 
       <div className="admin-grid-stats">
         <StatCard
-          title="Total Guru"
+          title="Total Guru & Staf"
           value={data?.totalGuru || 0}
           description="Guru aktif"
           icon={Users}
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
         {!data?.daftarHadir?.length ? (
           <div className="rounded-2xl bg-slate-50 p-6 text-center">
             <p className="font-bold text-slate-500">
-              Belum ada guru yang absen hari ini.
+              Belum ada Guru/Staf yang absen hari ini.
             </p>
           </div>
         ) : (
@@ -159,13 +159,13 @@ export default function AdminDashboard() {
 
       <AdminSectionCard
         title="Belum Hadir"
-        description="Guru/karyawan yang belum absen datang."
+        description="Guru/Staf yang belum absen datang."
         icon={UserX}
       >
         {!data?.daftarBelumHadir?.length ? (
           <div className="rounded-2xl bg-emerald-50 p-6 text-center">
             <p className="font-bold text-emerald-700">
-              Semua guru/karyawan sudah hadir.
+              Semua guru/staf sudah hadir.
             </p>
           </div>
         ) : (

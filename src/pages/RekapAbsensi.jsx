@@ -99,7 +99,7 @@ export default function RekapAbsensi() {
             </h1>
 
             <p className="mt-2 text-sm leading-relaxed text-white/75">
-              Rekap guru/karyawan berdasarkan periode bulanan dan mingguan
+              Rekap Guru/Staf berdasarkan periode bulanan dan mingguan
             </p>
           </div>
 
@@ -124,7 +124,7 @@ export default function RekapAbsensi() {
           <div>
             <h2 className="text-lg font-black text-slate-900">Filter Rekap</h2>
             <p className="text-sm text-slate-500">
-              Pilih guru, bulan, tahun, dan minggu
+              Pilih Guru, Bulan, Tahun, dan Minggu
             </p>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function RekapAbsensi() {
             onChange={(e) => setIdGuru(e.target.value)}
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500"
           >
-            <option value="">Semua Guru</option>
+            <option value="">Semua Guru & Staf</option>
             {guruList.map((guru) => (
               <option key={guru.idGuru} value={guru.idGuru}>
                 {guru.nama}
@@ -387,7 +387,7 @@ export default function RekapAbsensi() {
               <div className="mx-auto min-w-[900px] max-w-5xl bg-white p-8 shadow-soft">
                 <div className="text-center">
                   <h1 className="text-xl font-black uppercase text-slate-900">
-                    Rekap Absensi Guru/Karyawan
+                    Rekap Absensi Guru/Staf
                   </h1>
                   <p className="mt-1 text-sm font-semibold text-slate-500">
                     Periode: {bulanLabel} {tahun} • Minggu {minggu}

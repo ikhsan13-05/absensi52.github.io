@@ -31,15 +31,15 @@ const menus = [
     icon: BarChart3,
   },
   {
-    label: "Guru",
+    label: "Guru & Staf",
     path: "/admin/guru",
     icon: Users,
   },
-  {
-    label: "Libur",
-    path: "/admin/libur",
-    icon: CalendarDays,
-  },
+  // {
+  //   label: "Libur",
+  //   path: "/admin/libur",
+  //   icon: CalendarDays,
+  // },
   {
     label: "Setting",
     path: "/admin/setting",

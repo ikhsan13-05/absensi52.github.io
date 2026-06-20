@@ -135,7 +135,7 @@ export default function KelolaGuru() {
             </h1>
 
             <p className="mt-2 text-sm leading-relaxed text-white/75">
-              Pantau perangkat guru dan reset device jika guru berganti HP.
+              Pantau perangkat guru dan reset device jika Guru/Staf berganti HP.
             </p>
           </div>
 

@@ -110,7 +110,7 @@ export default function MonitoringRealtime() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">
         <StatCard
-          title="Total Guru"
+          title="Total Guru & Staf"
           value={summary.totalGuru || 0}
           description="Aktif"
           icon={Users}
@@ -149,7 +149,7 @@ export default function MonitoringRealtime() {
 
       <AdminSectionCard
         title="Filter Monitoring"
-        description="Cari berdasarkan nama, NIP, jabatan, atau status."
+        description="Cari berdasarkan Nama, NIP, Jabatan, atau Status."
         icon={Monitor}
       >
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -159,7 +159,7 @@ export default function MonitoringRealtime() {
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Cari nama, NIP, jabatan..."
+              placeholder="Cari nama, NIP, Jabatan..."
               className="w-full bg-transparent px-3 py-3 text-sm font-semibold outline-none"
             />
           </div>
@@ -179,7 +179,7 @@ export default function MonitoringRealtime() {
 
       <AdminSectionCard
         title="Daftar Monitoring"
-        description="Status absensi guru/karyawan hari ini."
+        description="Status absensi Guru/Staf hari ini."
         icon={Monitor}
         right={
           loading ? (

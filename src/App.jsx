@@ -10,7 +10,7 @@ import RiwayatAbsen from "./pages/RiwayatAbsen";
 import AdminDashboard from "./pages/AdminDashboard";
 import MonitoringRealtime from "./pages/MonitoringRealtime";
 import RekapAbsensi from "./pages/RekapAbsensi";
-import SettingLibur from "./pages/SettingLibur";
+// import SettingLibur from "./pages/SettingLibur";
 import KelolaGuru from "./pages/KelolaGuru";
 
 import MobileLayout from "./layouts/MobileLayout";
@@ -52,7 +52,7 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="monitoring" element={<MonitoringRealtime />} />
         <Route path="rekap" element={<RekapAbsensi />} />
-        <Route path="libur" element={<SettingLibur />} />
+        {/* <Route path="libur" element={<SettingLibur />} /> */}
         <Route path="guru" element={<KelolaGuru />} />
         <Route path="setting" element={<SettingSekolah />} />
       </Route>
